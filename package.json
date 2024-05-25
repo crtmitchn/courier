@@ -1,0 +1,46 @@
+{
+	"dependencies": {
+		"@ptkdev/logger": "^1.8.0",
+		"dotenv": "^16.4.5",
+		"fs": "^0.0.1-security",
+		"inquirer": "^8.2.4",
+		"luxon": "^3.4.4",
+		"node-gyp": "^10.1.0",
+		"nodemon": "^3.1.0",
+		"path": "^0.12.7",
+		"prettier": "^3.2.5",
+		"request": "^2.88.2",
+		"superagent": "^9.0.2",
+		"suppress-experimental-warnings": "^2.0.0",
+		"systray": "^1.0.5",
+		"tsc": "^2.0.4",
+		"typescript": "^5.4.5"
+	},
+	"name": "courier",
+	"version": "1.0.0",
+	"description": "An application to easily track your parcel using ParcelApp API",
+	"main": "src/index.ts",
+	"scripts": {
+		"cleanup": "npx prettier -c . -w ",
+		"pkg": "ts-node --require=suppress-experimental-warnings src/index.ts"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/crtmitchn/courier.git"
+	},
+	"author": "Mitchn",
+	"license": "GPL-3.0-only",
+	"bugs": {
+		"url": "https://github.com/crtmitchn/courier/issues"
+	},
+	"homepage": "https://github.com/crtmitchn/courier#readme",
+	"devDependencies": {
+		"@types/clipboardy": "^2.0.1",
+		"@types/inquirer": "^9.0.7",
+		"@types/luxon": "^3.4.2",
+		"@types/node-notifier": "^8.0.5",
+		"@types/request": "^2.48.12",
+		"@types/superagent": "^8.1.7",
+		"node-notifier": "^10.0.1"
+	}
+}
