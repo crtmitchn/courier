@@ -115,6 +115,18 @@ async function readTrackingInfo(): Promise<any> {
 	return trackingInfoObject;
 }
 
+// Reading laststate.json
+async function readLastState(): Promise<any> {
+	const ls = readFileSync(join(__dirname, "laststate.json"));
+	const lsJSON = JSON.parse(ls.toString());
+
+	const lastPackageStateObject: object = {
+		lastPackageState: lsJSON.lastPackageState
+	};
+
+	return lastPackageStateObject;
+}
+
 // POST request to ParcelsApp API (which documentation is shit)
 async function getData(): Promise<ParcelResponse> {
 	const info = await readTrackingInfo();
@@ -147,9 +159,10 @@ const icon = readFileSync(join(__dirname, `./assets/courier.ico`));
 async function main(): Promise<void> {
 	logger.info("Updating data", "main");
 	const data = await getData();
+	const lastPackState = await readLastState();
 
 	// Checking if package state changed
-	if (lastPackageState != data.shipments[0].lastState.status) {
+	if (lastPackState.lastPackageState != data.shipments[0].lastState.status) {
 		notification("State changed!", data.shipments[0].states[0].status, true);
 		logger.warning("State changed!", "main");
 		logger.debug(`Previous state: ${lastPackageState}`, "main");
