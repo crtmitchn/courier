@@ -35,7 +35,6 @@ const options: object = {
 
 // Initializing logger
 const logger = new Logger(options);
-export default logger;
 
 // Notifications
 function notification(title: string, message: string, silent: boolean) {
@@ -140,8 +139,47 @@ async function getData(): Promise<ParcelResponse> {
 		"Content-Type": "application/json"
 	};
 
-	if (!body.shipments[0].trackingId)
-		return { shipments: [], done: true, fromCache: true };
+	if (!body.shipments) {
+		logger.warning("No data was received! Either ParcelsApp API returned only UUID or connection was unsuccessful.", "getData");
+		return {
+			shipments: [
+				{
+					states: [],
+					origin: "No data",
+					destination: "No data",
+					carriers: [],
+					externalTracking: [],
+					attributes: [
+						{
+							l: "days_transit",
+							n: "Days in transit",
+							val: "No data"
+						}
+					],
+					services: [],
+					detected: [],
+					detectedCarrier: {
+						name: "No data",
+						slug: "No data"
+					},
+					carrier: 0,
+					checkedCountry: "No data",
+					checkedCountryCode: "N/A",
+					destinationCode: "N/A",
+					originCode: "N/A",
+					status: "No data",
+					trackingId: "No data",
+					lastState: {
+						date: new Date(),
+						carrier: 0,
+						status: "No data"
+					}
+				}
+			],
+			"done": true,
+			"fromCache": true
+		}
+	}
 
 	const res = await fetch(url, {
 		method: "POST",
@@ -152,6 +190,18 @@ async function getData(): Promise<ParcelResponse> {
 	return data;
 }
 
+// Check which OS are we running on and use proper method to kill tray
+function destroyTray(): void {
+	switch (process.platform) {
+		case "win32":
+			child.execSync("taskkill /f /im tray_windows_release.exe");
+			break;
+		case "linux":
+			child.execSync("killall -r tray_linux_release");
+			break;
+	}
+}
+
 // Loading icon (which will be converted to Base64 string)
 const icon = readFileSync(join(__dirname, `./assets/courier.ico`));
 
@@ -159,25 +209,30 @@ const icon = readFileSync(join(__dirname, `./assets/courier.ico`));
 async function main(): Promise<void> {
 	logger.info("Updating data", "main");
 	const data = await getData();
+	console.log(data);
 	const lastPackState = await readLastState();
 
 	// Checking if package state changed
-	if (lastPackState.lastPackageState != data.shipments[0].lastState.status) {
-		notification("State changed!", data.shipments[0].states[0].status, true);
-		logger.warning("State changed!", "main");
-		logger.debug(`Previous state: ${lastPackageState}`, "main");
-		logger.debug(`New state: ${data.shipments[0].lastState.status}`, "main");
+	try {
+		if (lastPackState.lastPackageState != data.shipments[0].lastState.status) {
+			notification("State changed!", data.shipments[0].states[0].status, true);
+			logger.warning("State changed!", "main");
+			logger.debug(`Previous state: ${lastPackageState}`, "main");
+			logger.debug(`New state: ${data.shipments[0].lastState.status}`, "main");
 
-		const newPackageState: object = {
-			lastPackageState: data.shipments[0].states[0].status
-		};
-		writeFileSync(
-			join(__dirname, "laststate.json"),
-			JSON.stringify(newPackageState),
-			"utf-8"
-		);
-	} else {
-		logger.sponsor("State is the same", "main");
+			const newPackageState: object = {
+				lastPackageState: data.shipments[0].states[0].status
+			};
+			writeFileSync(
+				join(__dirname, "laststate.json"),
+				JSON.stringify(newPackageState),
+				"utf-8"
+			);
+		} else {
+			logger.sponsor("State is the same", "main");
+		}
+	} catch (err: any) {
+		logger.error(err);
 	}
 
 	if (data.error) throw new Error(`Error while getting parcel info. ${data.error}`);
@@ -355,9 +410,9 @@ async function main(): Promise<void> {
 		}
 	});
 
-	// If we don't use this, new tray icon will be displayed each 2 minutes
+	// If we don't use this, new tray icon will be displayed each N minutes
 	setTimeout(() => {
-		child.execSync("taskkill /f /im tray_windows_release.exe");
+		destroyTray();
 	}, 299500);
 }
 
