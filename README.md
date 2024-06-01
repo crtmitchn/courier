@@ -3,8 +3,6 @@
 **Courier** is an application to track your parcels using ParcelsApp API.  
 Written in TypeScript.
 
----
-
 # Installation 🔧
 
 ```
@@ -25,16 +23,12 @@ On every next run you'll be asked to do the same, if you wish not to, just press
 
 #### Note, that you also can change just one variable, leaving another one empty.
 
----
-
 # Usage 🧠
 
 Open tray, click on icon (courier from Dota 2) and you're good to go!
 
 To exit, click first entry named **Close tracker**, to copy tracking number **click on it**.
 
----
-
 # Known bugs 🐞
 
-Sometimes, after changing tracking number while already having different saved number, app will crash on start. **Workaround**: start app using `npm run pkg` multiple times if it keeps crashing.
+Icon won't display on some DE's on Linux. Take it or leave it (shrug)

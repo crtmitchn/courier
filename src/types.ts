@@ -50,3 +50,13 @@ export interface State {
 	carrier: number;
 	status: string;
 }
+
+export interface Tracking {
+	apiKey: string;
+	trackingUrl: string;
+	shipments: object[];
+}
+
+export interface LastState {
+	lastPackageState: string;
+}

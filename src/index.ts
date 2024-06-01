@@ -8,7 +8,7 @@ import Logger from "@ptkdev/logger";
 import "dotenv/config";
 import SysTray from "systray";
 import * as luxon from "luxon";
-import { ParcelResponse } from "./types";
+import { LastState, ParcelResponse, Tracking } from "./types";
 import { lastPackageState } from "./laststate.json";
 import { TRACK_NUMBER, COUNTRY } from "./tracking.json";
 
@@ -48,7 +48,7 @@ function notification(title: string, message: string, silent: boolean) {
 
 // Getting user input (Tracking number and destination country)
 async function getTracking(): Promise<any> {
-	logger.info("Asking for prompt", "getTracking");
+	logger.info("Initializing prompts", "getTracking");
 	const questions = [
 		{
 			type: "input",
@@ -82,8 +82,8 @@ async function parseTracking(): Promise<void> {
 			"parseTracking"
 		);
 		const newTracking: object = {
-			TRACK_NUMBER: TRACK_NUMBER_Q.length ? TRACK_NUMBER_Q : TRACK_NUMBER,
-			COUNTRY: COUNTRY_Q.length ? COUNTRY_Q : COUNTRY
+			TRACK_NUMBER: TRACK_NUMBER_Q,
+			COUNTRY: COUNTRY_Q
 		};
 
 		writeFileSync(join(__dirname, "tracking.json"), JSON.stringify(newTracking), "utf-8");
@@ -91,39 +91,35 @@ async function parseTracking(): Promise<void> {
 }
 
 // Reading tracking.json
-async function readTrackingInfo(): Promise<any> {
-	const tracker = readFileSync(join(__dirname, "tracking.json"));
-	const trackingJSON = JSON.parse(tracker.toString());
+async function readTrackingInfo(): Promise<Tracking> {
+	const tracking = JSON.parse(readFileSync(join(__dirname, "tracking.json")).toString());
 
-	const apiKey = process.env.PARCELSAPP_API_KEY;
-	const trackingUrl = "https://parcelsapp.com/api/v3/shipments/tracking";
-	const shipments = [
-		{
-			trackingId: trackingJSON.TRACK_NUMBER,
-			language: "en",
-			country: trackingJSON.COUNTRY
-		}
-	];
-
-	const trackingInfoObject: object = {
-		apiKey: apiKey,
-		trackingUrl: trackingUrl,
-		shipments: shipments
+	const trackingInfoObject: Tracking = {
+		apiKey: process.env.PARCELSAPP_API_KEY!,
+		trackingUrl: "https://parcelsapp.com/api/v3/shipments/tracking",
+		shipments: [
+			{
+				trackingId: tracking.TRACK_NUMBER,
+				language: "en",
+				country: tracking.COUNTRY
+			}
+		]
 	};
 
 	return trackingInfoObject;
 }
 
 // Reading laststate.json
-async function readLastState(): Promise<any> {
-	const ls = readFileSync(join(__dirname, "laststate.json"));
-	const lsJSON = JSON.parse(ls.toString());
+async function readLastState(): Promise<LastState> {
+	const lastState = JSON.parse(
+		readFileSync(join(__dirname, "laststate.json")).toString()
+	);
 
-	const lastPackageStateObject: object = {
-		lastPackageState: lsJSON.lastPackageState
+	const lastStateObject: LastState = {
+		lastPackageState: lastState.lastPackageState
 	};
 
-	return lastPackageStateObject;
+	return lastStateObject;
 }
 
 // POST request to ParcelsApp API (which documentation is shit)
@@ -135,13 +131,23 @@ async function getData(): Promise<ParcelResponse> {
 		apiKey: info["apiKey"],
 		shipments: info["shipments"]
 	};
-	const customHeaders = {
-		"Content-Type": "application/json"
-	};
 
-	if (!body.shipments) {
-		logger.warning("No data was received! Either ParcelsApp API returned only UUID or connection was unsuccessful.", "getData");
-		return {
+	const res = await fetch(url, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify(body)
+	});
+
+	let data = await res.json();
+
+	if (!data.shipments) {
+		logger.warning(
+			"No data was received! Either ParcelsApp API returned only UUID or connection was unsuccessful.",
+			"getData"
+		);
+		data = {
 			shipments: [
 				{
 					states: [],
@@ -175,74 +181,41 @@ async function getData(): Promise<ParcelResponse> {
 						status: "No data"
 					}
 				}
-			],
-			"done": true,
-			"fromCache": true
-		}
+			]
+		};
 	}
 
-	const res = await fetch(url, {
-		method: "POST",
-		headers: customHeaders,
-		body: JSON.stringify(body)
-	});
-	const data = await res.json();
 	return data;
 }
 
-// Check which OS are we running on and use proper method to kill tray
-function destroyTray(): void {
-	switch (process.platform) {
-		case "win32":
-			child.execSync("taskkill /f /im tray_windows_release.exe");
-			break;
-		case "linux":
-			child.execSync("killall -r tray_linux_release");
-			break;
-	}
-}
-
-let icon: any = "";
-
-// Loading icon (which will be converted to Base64 string)
-function readIcon(): any {
-	switch (process.platform) {
-		case "win32":
-			icon = readFileSync(join(__dirname, `./assets/courier.ico`));
-			break;
-		case "linux":
-			icon = readFileSync(join(__dirname, "./assets/courier.png"));
-			break;
-	}
-}
+const icon = readFileSync(
+	join(__dirname, `./assets/courier.${process.platform == "win32" ? "ico" : "png"}`)
+);
 
 // Main loop
 async function main(): Promise<void> {
 	logger.info("Updating data", "main");
 	const data = await getData();
-	const lastPackState = await readLastState();
+	const lastPackageState = await readLastState();
 
 	// Checking if package state changed
-	try {
-		if (lastPackState.lastPackageState != data.shipments[0].lastState.status) {
-			notification("State changed!", data.shipments[0].states[0].status, true);
-			logger.warning("State changed!", "main");
-			logger.debug(`Previous state: ${lastPackageState}`, "main");
-			logger.debug(`New state: ${data.shipments[0].lastState.status}`, "main");
+	if (lastPackageState.lastPackageState != data.shipments[0].lastState.status) {
+		notification("State changed!", data.shipments[0].states[0].status, true);
+		logger.warning("State changed!", "main");
+		logger.debug(`Previous state: ${lastPackageState}`, "main");
+		logger.debug(`New state: ${data.shipments[0].lastState.status}`, "main");
 
-			const newPackageState: object = {
-				lastPackageState: data.shipments[0].states[0].status
-			};
-			writeFileSync(
-				join(__dirname, "laststate.json"),
-				JSON.stringify(newPackageState),
-				"utf-8"
-			);
-		} else {
-			logger.sponsor("State is the same", "main");
-		}
-	} catch (err: any) {
-		logger.error(err);
+		const newPackageState: LastState = {
+			lastPackageState: data.shipments[0].states[0].status
+		};
+
+		writeFileSync(
+			join(__dirname, "laststate.json"),
+			JSON.stringify(newPackageState),
+			"utf-8"
+		);
+	} else {
+		logger.sponsor("State is the same", "main");
 	}
 
 	if (data.error) throw new Error(`Error while getting parcel info. ${data.error}`);
@@ -402,32 +375,34 @@ async function main(): Promise<void> {
 				systray.kill();
 				break;
 			case 1:
+				if (process.platform === "linux")
+					return logger.warning(
+						"Copying to clipboard is not implemented on Linux.",
+						"systray"
+					);
 				notification(
 					"Tracking number",
 					"Copied tracking number into clipping board",
 					false
 				);
 				logger.docs(
-					`Copying tracking number (${data.shipments[0] ? data.shipments[0].trackingId : "None"}) to clipboard!`,
+					`Copying tracking number (${data.shipments[0].trackingId}) to clipboard!`,
 					"systray"
 				);
-				child
-					.spawn("clip")
-					.stdin.end(
-						util.inspect(data.shipments[0] ? data.shipments[0].trackingId : "None")
-					);
+				child.spawn("clip").stdin.end(util.inspect(data.shipments[0].trackingId));
 				break;
 		}
 	});
 
 	// If we don't use this, new tray icon will be displayed each N minutes
 	setTimeout(() => {
-		destroyTray();
+		child.execSync(
+			`${process.platform == "win32" ? "taskkill /f /im" : "killall -r"} tray_${process.platform == "win32" ? "windows" : "linux"}_release.exe`
+		);
 	}, 299500);
 }
 
 parseTracking().then(() => {
-	readIcon();
 	main();
 	setInterval(main, 300000);
 });
