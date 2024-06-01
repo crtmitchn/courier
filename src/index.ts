@@ -202,14 +202,24 @@ function destroyTray(): void {
 	}
 }
 
+let icon: any = "";
+
 // Loading icon (which will be converted to Base64 string)
-const icon = readFileSync(join(__dirname, `./assets/courier.ico`));
+function readIcon(): any {
+	switch (process.platform) {
+		case "win32":
+			icon = readFileSync(join(__dirname, `./assets/courier.ico`));
+			break;
+		case "linux":
+			icon = readFileSync(join(__dirname, "./assets/courier.png"));
+			break;
+	}
+}
 
 // Main loop
 async function main(): Promise<void> {
 	logger.info("Updating data", "main");
 	const data = await getData();
-	console.log(data);
 	const lastPackState = await readLastState();
 
 	// Checking if package state changed
@@ -417,6 +427,7 @@ async function main(): Promise<void> {
 }
 
 parseTracking().then(() => {
+	readIcon();
 	main();
 	setInterval(main, 300000);
 });
