@@ -36,6 +36,8 @@ const options: object = {
 // Initializing logger
 const logger = new Logger(options);
 
+let updateInterval = 300000;
+
 // Notifications
 function notification(title: string, message: string, silent: boolean) {
 	notify({
@@ -59,6 +61,11 @@ async function getTracking(): Promise<any> {
 			type: "input",
 			name: "COUNTRY_Q",
 			message: "Enter destination country or leave it blank if you saved it before"
+		},
+		{
+			type: "input",
+			name: "UPDATE_INTERVAL_Q",
+			message: "Enter custom update interval in ms if needed. Default is 300000"
 		}
 	];
 
@@ -75,6 +82,7 @@ async function parseTracking(): Promise<void> {
 
 	const TRACK_NUMBER_Q = answer["TRACK_NUMBER_Q"];
 	const COUNTRY_Q = answer["COUNTRY_Q"];
+	const UPDATE_INTERVAL_Q = answer["UPDATE_INTERVAL_Q"];
 
 	if (TRACK_NUMBER_Q.length || COUNTRY_Q.length > 0) {
 		logger.warning(
@@ -82,12 +90,14 @@ async function parseTracking(): Promise<void> {
 			"parseTracking"
 		);
 		const newTracking: object = {
-			TRACK_NUMBER: TRACK_NUMBER_Q,
-			COUNTRY: COUNTRY_Q
+			TRACK_NUMBER: TRACK_NUMBER_Q ? TRACK_NUMBER_Q : TRACK_NUMBER,
+			COUNTRY: COUNTRY_Q ? COUNTRY_Q : COUNTRY
 		};
 
 		writeFileSync(join(__dirname, "tracking.json"), JSON.stringify(newTracking), "utf-8");
 	}
+
+	if (UPDATE_INTERVAL_Q.length > 0) updateInterval = UPDATE_INTERVAL_Q;
 }
 
 // Reading tracking.json
@@ -141,16 +151,19 @@ async function getData(): Promise<ParcelResponse> {
 	});
 
 	let data = await res.json();
-
-	if (!data.shipments) {
+	if (data.uuid) {
 		logger.warning(
-			"No data was received! Either ParcelsApp API returned only UUID or connection was unsuccessful.",
+			"Could not retrieve data from ParcelsApp API. This error is fine to see in most cases. Data will be received on next update.",
 			"getData"
 		);
 		data = {
 			shipments: [
 				{
-					states: [],
+					states: [
+						{
+							status: lastPackageState.length == 0 ? "No data" : lastPackageState
+						}
+					],
 					origin: "No data",
 					destination: "No data",
 					carriers: [],
@@ -178,7 +191,7 @@ async function getData(): Promise<ParcelResponse> {
 					lastState: {
 						date: new Date(),
 						carrier: 0,
-						status: "No data"
+						status: lastPackageState.length == 0 ? "No data" : lastPackageState
 					}
 				}
 			]
@@ -196,10 +209,10 @@ const icon = readFileSync(
 async function main(): Promise<void> {
 	logger.info("Updating data", "main");
 	const data = await getData();
-	const lastPackageState = await readLastState();
+	const lastPackageStateObject = await readLastState();
 
 	// Checking if package state changed
-	if (lastPackageState.lastPackageState != data.shipments[0].lastState.status) {
+	if (lastPackageStateObject.lastPackageState != data.shipments[0].lastState.status) {
 		notification("State changed!", data.shipments[0].states[0].status, true);
 		logger.warning("State changed!", "main");
 		logger.debug(`Previous state: ${lastPackageState}`, "main");
@@ -284,9 +297,10 @@ async function main(): Promise<void> {
 					enabled: false
 				},
 				{
-					title: data.shipments[0].states[0]
-						? `--> [ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[0].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[0].location ? ` at ${data.shipments[0].states[0].location} ] ` : " ] "}${data.shipments[0].states[0].status}`
-						: "No data",
+					title:
+						data.shipments[0].states[0].status != "No data"
+							? `--> [ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[0].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[0].location ? ` at ${data.shipments[0].states[0].location} ] ` : " ] "}${data.shipments[0].states[0].status}`
+							: "No data",
 					tooltip: "-",
 					checked: true,
 					enabled: data.shipments[0].states[0] ? true : false
@@ -397,12 +411,13 @@ async function main(): Promise<void> {
 	// If we don't use this, new tray icon will be displayed each N minutes
 	setTimeout(() => {
 		child.execSync(
-			`${process.platform == "win32" ? "taskkill /f /im" : "killall -r"} tray_${process.platform == "win32" ? "windows" : "linux"}_release.exe`
+			`${process.platform == "win32" ? "taskkill /f /im tray_windows_release.exe" : "killall -r tray_linux_release"}`
 		);
-	}, 299500);
+	}, updateInterval - 500);
 }
 
 parseTracking().then(() => {
+	logger.info(`Updating data every ${updateInterval} ms`, "cycle");
 	main();
-	setInterval(main, 300000);
+	setInterval(main, updateInterval);
 });
