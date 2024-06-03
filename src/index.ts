@@ -217,8 +217,16 @@ const icon = readFileSync(
 // Main loop
 async function main(): Promise<void> {
 	logger.info("Updating data", "main");
-	const data = await getData();
+	let data = await getData();
 	const lastPackageStateObject = await readLastState();
+
+	if (data.uuid) {
+		logger.warning(
+			"Received parcel UUID instead of response. Re-invoking getData()",
+			"main"
+		);
+		data = await getData();
+	}
 
 	// Checking if package state changed
 	if (lastPackageStateObject.lastPackageState != data.shipments[0].lastState.status) {
