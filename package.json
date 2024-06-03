@@ -2,18 +2,21 @@
 	"dependencies": {
 		"@ptkdev/logger": "^1.8.0",
 		"dotenv": "^16.4.5",
+		"eslint-config-prettier": "^9.1.0",
 		"inquirer": "^8.2.4",
 		"luxon": "^3.4.4",
 		"prettier": "^3.2.5",
+		"prettier-eslint": "^16.3.0",
 		"suppress-experimental-warnings": "^2.0.0",
-		"systray": "^1.0.5"
+		"systray": "^1.0.5",
+		"typescript": "^5.4.5"
 	},
 	"name": "courier",
 	"version": "1.0.0",
 	"description": "An application to easily track your parcel using ParcelApp API",
 	"main": "src/index.ts",
 	"scripts": {
-		"cleanup": "npx prettier -c . -w ",
+		"cleanup": "yarn prettier -c . -w ",
 		"pkg": "ts-node --require=suppress-experimental-warnings src/index.ts"
 	},
 	"repository": {
@@ -27,9 +30,13 @@
 	},
 	"homepage": "https://github.com/crtmitchn/courier#readme",
 	"devDependencies": {
+		"@eslint/js": "^9.4.0",
 		"@types/inquirer": "^9.0.7",
 		"@types/luxon": "^3.4.2",
 		"@types/node-notifier": "^8.0.5",
-		"node-notifier": "^10.0.1"
+		"eslint": "9.x",
+		"globals": "^15.3.0",
+		"node-notifier": "^10.0.1",
+		"typescript-eslint": "^7.11.0"
 	}
 }
