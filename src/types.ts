@@ -1,4 +1,5 @@
 export interface ParcelResponse {
+	uuid?: string;
 	shipments: Shipment[];
 	done: boolean;
 	fromCache: boolean;
@@ -59,4 +60,10 @@ export interface Tracking {
 
 export interface LastState {
 	lastPackageState: string;
+}
+
+export interface Prompt {
+	TRACK_NUMBER_Q: string;
+	COUNTRY_Q: string;
+	UPDATE_INTERVAL_Q: number;
 }

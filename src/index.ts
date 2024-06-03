@@ -1,14 +1,13 @@
-import * as util from "util";
 import * as child from "child_process";
 import { notify } from "node-notifier";
-import { readFile, readFileSync, writeFileSync } from "fs";
-import { join, parse } from "path";
+import { readFileSync, writeFileSync } from "fs";
+import { join } from "path";
 import { createPromptModule } from "inquirer";
 import Logger from "@ptkdev/logger";
 import "dotenv/config";
 import SysTray from "systray";
 import * as luxon from "luxon";
-import { LastState, ParcelResponse, Tracking } from "./types";
+import { LastState, ParcelResponse, Prompt, Tracking } from "./types";
 import { lastPackageState } from "./laststate.json";
 import { TRACK_NUMBER, COUNTRY } from "./tracking.json";
 
@@ -35,7 +34,6 @@ const options: object = {
 
 // Initializing logger
 const logger = new Logger(options);
-
 let updateInterval = 300000;
 
 // Notifications
@@ -49,7 +47,7 @@ function notification(title: string, message: string, silent: boolean) {
 }
 
 // Getting user input (Tracking number and destination country)
-async function getTracking(): Promise<any> {
+async function getTracking(): Promise<Prompt> {
 	logger.info("Initializing prompts", "getTracking");
 	const questions = [
 		{
@@ -65,12 +63,12 @@ async function getTracking(): Promise<any> {
 		{
 			type: "input",
 			name: "UPDATE_INTERVAL_Q",
-			message: "Enter custom update interval in ms if needed. Default is 300000"
+			message: "Enter custom update interval in ms if needed (>=30000). Default is 300000"
 		}
 	];
 
 	const prompt = createPromptModule();
-	const answer: any = await prompt(questions);
+	const answer: Prompt = await prompt(questions);
 
 	return answer;
 }
@@ -84,7 +82,7 @@ async function parseTracking(): Promise<void> {
 	const COUNTRY_Q = answer["COUNTRY_Q"];
 	const UPDATE_INTERVAL_Q = answer["UPDATE_INTERVAL_Q"];
 
-	if (TRACK_NUMBER_Q.length || COUNTRY_Q.length > 0) {
+	if ((TRACK_NUMBER_Q.length || COUNTRY_Q.length) > 0) {
 		logger.warning(
 			"Track number or country length are not equal to 0, overwriting",
 			"parseTracking"
@@ -97,7 +95,18 @@ async function parseTracking(): Promise<void> {
 		writeFileSync(join(__dirname, "tracking.json"), JSON.stringify(newTracking), "utf-8");
 	}
 
-	if (UPDATE_INTERVAL_Q.length > 0) updateInterval = UPDATE_INTERVAL_Q;
+	if (
+		typeof UPDATE_INTERVAL_Q === "number" &&
+		UPDATE_INTERVAL_Q.toString().length > 0 &&
+		UPDATE_INTERVAL_Q >= 30000
+	) {
+		updateInterval = UPDATE_INTERVAL_Q;
+	} else {
+		logger.warning(
+			"Got empty or invalid update interval, falling back to default.",
+			"parseTracking"
+		);
+	}
 }
 
 // Reading tracking.json
@@ -153,7 +162,7 @@ async function getData(): Promise<ParcelResponse> {
 	let data = await res.json();
 	if (data.uuid) {
 		logger.warning(
-			"Could not retrieve data from ParcelsApp API. This error is fine to see in most cases. Data will be received on next update.",
+			"Could not retrieve data from ParcelsApp API. This error is fine to see in most cases. Data will be retrieved on next update.",
 			"getData"
 		);
 		data = {
@@ -249,6 +258,12 @@ async function main(): Promise<void> {
 				{
 					title: `Currently tracking: ${data.shipments[0].trackingId} (click to copy)`,
 					tooltip: "Short package info",
+					checked: true,
+					enabled: true
+				},
+				{
+					title: `RSS: ${Math.round((process.memoryUsage().rss / 1024 / 1024) * 100) / 100} MB / heapTotal: ${Math.round((process.memoryUsage().heapTotal / 1024 / 1024) * 100) / 100} MB / heapUsed: ${Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) / 100} MB`,
+					tooltip: "Used heap",
 					checked: true,
 					enabled: true
 				},
@@ -403,16 +418,22 @@ async function main(): Promise<void> {
 					`Copying tracking number (${data.shipments[0].trackingId}) to clipboard!`,
 					"systray"
 				);
-				child.spawn("clip").stdin.end(util.inspect(data.shipments[0].trackingId));
+				process.platform == "win32"
+					? child.spawn("clip").stdin.end(data.shipments[0].trackingId)
+					: child.spawn("xclip").stdin.end(data.shipments[0].trackingId);
 				break;
 		}
 	});
 
 	// If we don't use this, new tray icon will be displayed each N minutes
 	setTimeout(() => {
-		child.execSync(
-			`${process.platform == "win32" ? "taskkill /f /im tray_windows_release.exe" : "killall -r tray_linux_release"}`
-		);
+		try {
+			child.execSync(
+				`${process.platform == "win32" ? "taskkill /f /im tray_windows_release.exe" : "killall -r tray_linux_release"}`
+			);
+		} catch (error: unknown) {
+			logger.error(error as string);
+		}
 	}, updateInterval - 500);
 }
 
