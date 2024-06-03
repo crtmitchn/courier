@@ -1,7 +1,7 @@
 import * as child from "child_process";
 import { notify } from "node-notifier";
-import { readFile, readFileSync, writeFileSync } from "fs";
-import { join, parse } from "path";
+import { readFileSync, writeFileSync } from "fs";
+import { join } from "path";
 import { createPromptModule } from "inquirer";
 import Logger from "@ptkdev/logger";
 import "dotenv/config";
