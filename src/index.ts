@@ -1,6 +1,6 @@
 import * as child from "child_process";
 import { notify } from "node-notifier";
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { createPromptModule } from "inquirer";
 import Logger from "@ptkdev/logger";
@@ -34,7 +34,6 @@ const options: object = {
 
 // Initializing logger
 const logger = new Logger(options);
-
 let updateInterval = 300000;
 
 // Notifications
@@ -159,7 +158,7 @@ async function getData(): Promise<ParcelResponse> {
 	let data = await res.json();
 	if (data.uuid) {
 		logger.warning(
-			"Could not retrieve data from ParcelsApp API. This error is fine to see in most cases. Data will be received on next update.",
+			"Could not retrieve data from ParcelsApp API. This error is fine to see in most cases. Data will be retrieved on next update.",
 			"getData"
 		);
 		data = {
@@ -214,8 +213,16 @@ const icon = readFileSync(
 // Main loop
 async function main(): Promise<void> {
 	logger.info("Updating data", "main");
-	const data = await getData();
+	let data = await getData();
 	const lastPackageStateObject = await readLastState();
+
+	if (data.uuid) {
+		logger.warning(
+			"Received parcel UUID instead of response. Re-invoking getData()",
+			"main"
+		);
+		data = await getData();
+	}
 
 	// Checking if package state changed
 	if (lastPackageStateObject.lastPackageState != data.shipments[0].lastState.status) {
@@ -309,10 +316,9 @@ async function main(): Promise<void> {
 					enabled: false
 				},
 				{
-					title:
-						data.shipments[0].states[0].status != "No data"
-							? `--> [ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[0].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[0].location ? ` at ${data.shipments[0].states[0].location} ] ` : " ] "}${data.shipments[0].states[0].status}`
-							: "No data",
+					title: data.shipments[0].states[0]
+						? `--> [ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[0].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[0].location ? ` at ${data.shipments[0].states[0].location} ] ` : " ] "}${data.shipments[0].states[0].status}`
+						: "No data",
 					tooltip: "-",
 					checked: true,
 					enabled: data.shipments[0].states[0] ? true : false
@@ -415,9 +421,17 @@ async function main(): Promise<void> {
 					`Copying tracking number (${data.shipments[0].trackingId}) to clipboard!`,
 					"systray"
 				);
-				process.platform == "win32"
-					? child.spawn("clip").stdin.end(data.shipments[0].trackingId)
-					: child.spawn("xclip").stdin.end(data.shipments[0].trackingId);
+				if (process.platform == "win32") {
+					child.spawn("clip").stdin.end(data.shipments[0].trackingId);
+				} else {
+					for (const path of process.env.PATH!.split(":")) {
+						if (existsSync(path + "/xclip")) {
+							child.spawn("xclip").stdin.end(data.shipments[0].trackingId);
+						} else {
+							logger.error("xclip package not found!");
+						}
+					}
+				}
 				break;
 		}
 	});
