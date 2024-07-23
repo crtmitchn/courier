@@ -407,11 +407,6 @@ async function main(): Promise<void> {
 				systray.kill();
 				break;
 			case 1:
-				if (process.platform === "linux")
-					return logger.warning(
-						"Copying to clipboard is not implemented on Linux.",
-						"systray"
-					);
 				notification(
 					"Tracking number",
 					"Copied tracking number into clipping board",
