@@ -36,6 +36,11 @@ const options: object = {
 const logger = new Logger(options);
 let updateInterval = 300000;
 
+if (process.env.PARCELSAPP_API_KEY == "") {
+	logger.error("Empty token string!", "root");
+	throw new Error("Empty token string!");
+}
+
 // Notifications
 function notification(title: string, message: string, silent: boolean) {
 	notify({
@@ -164,11 +169,6 @@ async function getData(): Promise<ParcelResponse> {
 		data = {
 			shipments: [
 				{
-					states: [
-						{
-							status: lastPackageState.length == 0 ? "No data" : lastPackageState
-						}
-					],
 					origin: "No data",
 					destination: "No data",
 					carriers: [],
@@ -213,19 +213,11 @@ const icon = readFileSync(
 // Main loop
 async function main(): Promise<void> {
 	logger.info("Updating data", "main");
-	let data = await getData();
+	const data = await getData();
 	const lastPackageStateObject = await readLastState();
 
-	if (data.uuid) {
-		logger.warning(
-			"Received parcel UUID instead of response. Re-invoking getData()",
-			"main"
-		);
-		data = await getData();
-	}
-
 	// Checking if package state changed
-	if (lastPackageStateObject.lastPackageState != data.shipments[0].lastState.status) {
+	if (lastPackageStateObject.lastPackageState != data.shipments[0]?.lastState.status) {
 		notification("State changed!", data.shipments[0].states[0].status, true);
 		logger.warning("State changed!", "main");
 		logger.debug(`Previous state: ${lastPackageState}`, "main");
@@ -316,7 +308,7 @@ async function main(): Promise<void> {
 					enabled: false
 				},
 				{
-					title: data.shipments[0].states[0]
+					title: (data.shipments[0].states[0] && data.shipments[0].states)
 						? `--> [ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[0].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[0].location ? ` at ${data.shipments[0].states[0].location} ] ` : " ] "}${data.shipments[0].states[0].status}`
 						: "No data",
 					tooltip: "-",
@@ -324,7 +316,7 @@ async function main(): Promise<void> {
 					enabled: data.shipments[0].states[0] ? true : false
 				},
 				{
-					title: data.shipments[0].states[1]
+					title: (data.shipments[0].states[1] && data.shipments[0].states)
 						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[1].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[1].location ? ` at ${data.shipments[0].states[1].location} ] ` : " ] "}${data.shipments[0].states[1].status}`
 						: "No data",
 					tooltip: "-",
@@ -332,7 +324,7 @@ async function main(): Promise<void> {
 					enabled: data.shipments[0].states[1] ? true : false
 				},
 				{
-					title: data.shipments[0].states[2]
+					title: (data.shipments[0].states[2] && data.shipments[0].states)
 						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[2].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[2].location ? ` at ${data.shipments[0].states[2].location} ] ` : " ] "}${data.shipments[0].states[2].status}`
 						: "No data",
 					tooltip: "-",
@@ -340,7 +332,7 @@ async function main(): Promise<void> {
 					enabled: data.shipments[0].states[2] ? true : false
 				},
 				{
-					title: data.shipments[0].states[3]
+					title: (data.shipments[0].states[3] && data.shipments[0].states)
 						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[3].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[3].location ? ` at ${data.shipments[0].states[3].location} ] ` : " ] "}${data.shipments[0].states[3].status}`
 						: "No data",
 					tooltip: "-",
@@ -348,7 +340,7 @@ async function main(): Promise<void> {
 					enabled: data.shipments[0].states[3] ? true : false
 				},
 				{
-					title: data.shipments[0].states[4]
+					title: (data.shipments[0].states[4] && data.shipments[0].states)
 						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[4].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[4].location ? ` at ${data.shipments[0].states[4].location} ] ` : " ] "}${data.shipments[0].states[4].status}`
 						: "No data",
 					tooltip: "-",
@@ -356,7 +348,7 @@ async function main(): Promise<void> {
 					enabled: data.shipments[0].states[4] ? true : false
 				},
 				{
-					title: data.shipments[0].states[5]
+					title: (data.shipments[0].states[5] && data.shipments[0].states)
 						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[5].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[5].location ? ` at ${data.shipments[0].states[5].location} ] ` : " ] "}${data.shipments[0].states[5].status}`
 						: "No data",
 					tooltip: "-",
@@ -364,7 +356,7 @@ async function main(): Promise<void> {
 					enabled: data.shipments[0].states[5] ? true : false
 				},
 				{
-					title: data.shipments[0].states[6]
+					title: (data.shipments[0].states[6] && data.shipments[0].states)
 						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[6].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[6].location ? ` at ${data.shipments[0].states[6].location} ] ` : " ] "}${data.shipments[0].states[6].status}`
 						: "No data",
 					tooltip: "-",
@@ -372,7 +364,7 @@ async function main(): Promise<void> {
 					enabled: data.shipments[0].states[6] ? true : false
 				},
 				{
-					title: data.shipments[0].states[7]
+					title: (data.shipments[0].states[7] && data.shipments[0].states)
 						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[7].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[7].location ? ` at ${data.shipments[0].states[7].location} ] ` : " ] "}${data.shipments[0].states[7].status}`
 						: "No data",
 					tooltip: "-",
@@ -380,7 +372,7 @@ async function main(): Promise<void> {
 					enabled: data.shipments[0].states[7] ? true : false
 				},
 				{
-					title: data.shipments[0].states[8]
+					title: (data.shipments[0].states[8] && data.shipments[0].states)
 						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[8].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[8].location ? ` at ${data.shipments[0].states[8].location} ] ` : " ] "}${data.shipments[0].states[8].status}`
 						: "No data",
 					tooltip: "-",
@@ -388,7 +380,7 @@ async function main(): Promise<void> {
 					enabled: data.shipments[0].states[8] ? true : false
 				},
 				{
-					title: data.shipments[0].states[9]
+					title: (data.shipments[0].states[9] && data.shipments[0].states)
 						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[9].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[9].location ? ` at ${data.shipments[0].states[9].location} ] ` : " ] "}${data.shipments[0].states[9].status}`
 						: "No data",
 					tooltip: "-",
