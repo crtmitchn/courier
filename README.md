@@ -33,6 +33,6 @@ To exit, click first entry named **Close tracker**, to copy tracking number **cl
 
 # Example 💫
 
-![example](https://cdn.discordapp.com/attachments/1131902842807009330/1266722772441366629/image.png)
+![example](https://tpm.pw/courier.png)
 
 By default you don't have any tracking number or country saved, so it's displayed as "None". On every next launch it'll display last saved entry.
