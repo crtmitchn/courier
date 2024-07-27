@@ -30,3 +30,9 @@ On every next run you'll be asked to do the same, if you wish not to, just press
 Open tray, click on icon (courier from Dota 2) and you're good to go!
 
 To exit, click first entry named **Close tracker**, to copy tracking number **click on it**.
+
+# Example 💫
+
+![example](https://cdn.discordapp.com/attachments/1131902842807009330/1266722772441366629/image.png)
+
+By default you don't have any tracking number or country saved, so it's displayed as "None". On every next launch it'll display last saved entry.

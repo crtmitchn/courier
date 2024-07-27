@@ -12,7 +12,7 @@
 		"typescript": "^5.4.5"
 	},
 	"name": "courier",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "An application to easily track your parcel using ParcelApp API",
 	"main": "src/index.ts",
 	"scripts": {

@@ -38,7 +38,7 @@ let updateInterval = 300000;
 
 if (["", "<key>"].includes(process.env.PARCELSAPP_API_KEY!)) {
 	logger.error("Empty token string!", "root");
-	logger.error(`Expected API key, received: ${process.env.PARCELSAPP_API_KEY}`)
+	logger.error(`Expected API key, received: ${process.env.PARCELSAPP_API_KEY}`);
 	throw new Error("Empty token string!");
 }
 
@@ -55,21 +55,24 @@ function notification(title: string, message: string, silent: boolean) {
 // Getting user input (Tracking number and destination country)
 async function getTracking(): Promise<Prompt> {
 	logger.info("Initializing prompts", "getTracking");
+	if (TRACK_NUMBER == "") {
+		logger.warning("Tracking number entry is empty. Please enter valid track number.");
+	}
 	const questions = [
 		{
 			type: "input",
 			name: "TRACK_NUMBER_Q",
-			message: "Enter your tracking number or leave it blank if you saved it before"
+			message: `Tracking number [${TRACK_NUMBER == "" ? "None" : TRACK_NUMBER}]`
 		},
 		{
 			type: "input",
 			name: "COUNTRY_Q",
-			message: "Enter destination country or leave it blank if you saved it before"
+			message: `Destination country [${COUNTRY == "" ? "None" : COUNTRY}]`
 		},
 		{
 			type: "input",
 			name: "UPDATE_INTERVAL_Q",
-			message: "Enter custom update interval in ms if needed (>=30000). Default is 300000"
+			message: "Update interval [Default 300000ms]"
 		}
 	];
 
@@ -309,81 +312,91 @@ async function main(): Promise<void> {
 					enabled: false
 				},
 				{
-					title: (data.shipments[0].states[0] && data.shipments[0].states)
-						? `--> [ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[0].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[0].location ? ` at ${data.shipments[0].states[0].location} ] ` : " ] "}${data.shipments[0].states[0].status}`
-						: "No data",
+					title:
+						data.shipments[0].states[0] && data.shipments[0].states
+							? `--> [ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[0].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[0].location ? ` at ${data.shipments[0].states[0].location} ] ` : " ] "}${data.shipments[0].states[0].status}`
+							: "No data",
 					tooltip: "-",
 					checked: true,
 					enabled: data.shipments[0].states[0] ? true : false
 				},
 				{
-					title: (data.shipments[0].states[1] && data.shipments[0].states)
-						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[1].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[1].location ? ` at ${data.shipments[0].states[1].location} ] ` : " ] "}${data.shipments[0].states[1].status}`
-						: "No data",
+					title:
+						data.shipments[0].states[1] && data.shipments[0].states
+							? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[1].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[1].location ? ` at ${data.shipments[0].states[1].location} ] ` : " ] "}${data.shipments[0].states[1].status}`
+							: "No data",
 					tooltip: "-",
 					checked: false,
 					enabled: data.shipments[0].states[1] ? true : false
 				},
 				{
-					title: (data.shipments[0].states[2] && data.shipments[0].states)
-						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[2].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[2].location ? ` at ${data.shipments[0].states[2].location} ] ` : " ] "}${data.shipments[0].states[2].status}`
-						: "No data",
+					title:
+						data.shipments[0].states[2] && data.shipments[0].states
+							? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[2].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[2].location ? ` at ${data.shipments[0].states[2].location} ] ` : " ] "}${data.shipments[0].states[2].status}`
+							: "No data",
 					tooltip: "-",
 					checked: false,
 					enabled: data.shipments[0].states[2] ? true : false
 				},
 				{
-					title: (data.shipments[0].states[3] && data.shipments[0].states)
-						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[3].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[3].location ? ` at ${data.shipments[0].states[3].location} ] ` : " ] "}${data.shipments[0].states[3].status}`
-						: "No data",
+					title:
+						data.shipments[0].states[3] && data.shipments[0].states
+							? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[3].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[3].location ? ` at ${data.shipments[0].states[3].location} ] ` : " ] "}${data.shipments[0].states[3].status}`
+							: "No data",
 					tooltip: "-",
 					checked: false,
 					enabled: data.shipments[0].states[3] ? true : false
 				},
 				{
-					title: (data.shipments[0].states[4] && data.shipments[0].states)
-						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[4].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[4].location ? ` at ${data.shipments[0].states[4].location} ] ` : " ] "}${data.shipments[0].states[4].status}`
-						: "No data",
+					title:
+						data.shipments[0].states[4] && data.shipments[0].states
+							? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[4].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[4].location ? ` at ${data.shipments[0].states[4].location} ] ` : " ] "}${data.shipments[0].states[4].status}`
+							: "No data",
 					tooltip: "-",
 					checked: false,
 					enabled: data.shipments[0].states[4] ? true : false
 				},
 				{
-					title: (data.shipments[0].states[5] && data.shipments[0].states)
-						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[5].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[5].location ? ` at ${data.shipments[0].states[5].location} ] ` : " ] "}${data.shipments[0].states[5].status}`
-						: "No data",
+					title:
+						data.shipments[0].states[5] && data.shipments[0].states
+							? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[5].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[5].location ? ` at ${data.shipments[0].states[5].location} ] ` : " ] "}${data.shipments[0].states[5].status}`
+							: "No data",
 					tooltip: "-",
 					checked: false,
 					enabled: data.shipments[0].states[5] ? true : false
 				},
 				{
-					title: (data.shipments[0].states[6] && data.shipments[0].states)
-						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[6].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[6].location ? ` at ${data.shipments[0].states[6].location} ] ` : " ] "}${data.shipments[0].states[6].status}`
-						: "No data",
+					title:
+						data.shipments[0].states[6] && data.shipments[0].states
+							? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[6].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[6].location ? ` at ${data.shipments[0].states[6].location} ] ` : " ] "}${data.shipments[0].states[6].status}`
+							: "No data",
 					tooltip: "-",
 					checked: false,
 					enabled: data.shipments[0].states[6] ? true : false
 				},
 				{
-					title: (data.shipments[0].states[7] && data.shipments[0].states)
-						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[7].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[7].location ? ` at ${data.shipments[0].states[7].location} ] ` : " ] "}${data.shipments[0].states[7].status}`
-						: "No data",
+					title:
+						data.shipments[0].states[7] && data.shipments[0].states
+							? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[7].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[7].location ? ` at ${data.shipments[0].states[7].location} ] ` : " ] "}${data.shipments[0].states[7].status}`
+							: "No data",
 					tooltip: "-",
 					checked: false,
 					enabled: data.shipments[0].states[7] ? true : false
 				},
 				{
-					title: (data.shipments[0].states[8] && data.shipments[0].states)
-						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[8].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[8].location ? ` at ${data.shipments[0].states[8].location} ] ` : " ] "}${data.shipments[0].states[8].status}`
-						: "No data",
+					title:
+						data.shipments[0].states[8] && data.shipments[0].states
+							? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[8].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[8].location ? ` at ${data.shipments[0].states[8].location} ] ` : " ] "}${data.shipments[0].states[8].status}`
+							: "No data",
 					tooltip: "-",
 					checked: false,
 					enabled: data.shipments[0].states[8] ? true : false
 				},
 				{
-					title: (data.shipments[0].states[9] && data.shipments[0].states)
-						? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[9].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[9].location ? ` at ${data.shipments[0].states[9].location} ] ` : " ] "}${data.shipments[0].states[9].status}`
-						: "No data",
+					title:
+						data.shipments[0].states[9] && data.shipments[0].states
+							? `[ ${luxon.DateTime.fromISO(new Date(data.shipments[0].states[9].date).toISOString()).toLocaleString(luxon.DateTime.DATETIME_MED_WITH_WEEKDAY)}${data.shipments[0].states[9].location ? ` at ${data.shipments[0].states[9].location} ] ` : " ] "}${data.shipments[0].states[9].status}`
+							: "No data",
 					tooltip: "-",
 					checked: false,
 					enabled: data.shipments[0].states[9] ? true : false
