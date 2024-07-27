@@ -36,8 +36,9 @@ const options: object = {
 const logger = new Logger(options);
 let updateInterval = 300000;
 
-if (process.env.PARCELSAPP_API_KEY == "") {
+if (["", "<key>"].includes(process.env.PARCELSAPP_API_KEY!)) {
 	logger.error("Empty token string!", "root");
+	logger.error(`Expected API key, received: ${process.env.PARCELSAPP_API_KEY}`)
 	throw new Error("Empty token string!");
 }
 
